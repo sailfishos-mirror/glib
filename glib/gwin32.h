@@ -135,7 +135,75 @@ gboolean g_win32_check_windows_version (const gint major,
                                         const gint spver,
                                         const GWin32OSType os_type);
 
+/**
+ * g_win32_release_com:
+ * @com_obj: (not optional) (nullable): Pointer to COM object pointer to release and possibly clear
+ *
+ * Releases and so decrements the reference count of the COM object, and clears
+ * its pointer to NULL if its reference count reaches 0.
+ *
+ * The @com_obj pointer must not be NULL.
+ *
+ * If @com_obj references a `NULL` COM  object, this function is a no-op.
+ *
+ * This is equivalent to [func@GLib.clear_object] for dealing with
+ * Windows COM objects.
+ *
+ * Note that until C23 support is utilized for Visual Studio, harmless C4133 warnings
+ * will show up when using this function for C programs, as there is no typeof support
+ * otherwise.
+ *
+ * Since: 2.84
+ */
+
+#ifndef __cplusplus
+/* Sadly, no typeof/__typeof__ support in Visual Studio until C23 (or /std:clatest), so one
+   must live with a harmless C4133 warning for now
+ */
+#if defined (_MSC_VER) && (!defined (__STDC_VERSION__) || (__STDC_VERSION__ < 202311L)) && !defined (__clang__)
+#define COM_TYPE(dest,obj) obj
+#else
+#define COM_TYPE(dest,obj) (typeof(dest))obj
+#endif
+
+#define g_win32_release_com(com_obj) \
+G_STMT_START {\
+  IUnknown *unknown_com_obj = (IUnknown *)*com_obj; \
+  \
+  if (unknown_com_obj) \
+    { \
+      if (unknown_com_obj->lpVtbl->Release (unknown_com_obj) == 0) \
+        unknown_com_obj = NULL; \
+    } \
+  \
+  *com_obj = COM_TYPE(*com_obj, unknown_com_obj); \
+}G_STMT_END
+
+#endif
+
 G_END_DECLS
+
+#ifdef __cplusplus
+/*
+ * There are COM objects that only have C++-style definitions, such as DirectWrite
+ * from the Windows SDK (albeit a C interface is provided for the mingw-w64 toolchain),
+ * so we need to have a C++ version for this
+ */
+template <typename com_interface>
+inline void
+g_win32_release_com (com_interface **com_obj)
+{
+  IUnknown *unknown_com_obj = static_cast<IUnknown *>(*com_obj);
+
+  if (unknown_com_obj != NULL)
+    {
+      if (unknown_com_obj->Release () == 0)
+        unknown_com_obj = NULL;
+    }
+
+  *com_obj = static_cast<com_interface *>(unknown_com_obj);
+}
+#endif
 
 #endif	 /* G_PLATFORM_WIN32 */
 
