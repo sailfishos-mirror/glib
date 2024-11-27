@@ -170,6 +170,7 @@ struct _GNotification
   gchar *title;
   gchar *body;
   GIcon *icon;
+  GNotificationSound *sound;
   GNotificationPriority priority;
   gchar *category;
   GPtrArray *buttons;
@@ -184,11 +185,31 @@ typedef struct
   GVariant *target;
 } Button;
 
+typedef enum
+{
+  SOUND_TYPE_DEFAULT,
+  SOUND_TYPE_FILE,
+  SOUND_TYPE_BYTES,
+} SoundType;
+
+struct _GNotificationSound
+{
+  GObject parent;
+
+  SoundType sound_type;
+  union {
+    GFile *file;
+    GBytes *bytes;
+  } data;
+};
+
 static void
 test_properties (void)
 {
   GNotification *n;
+  GNotificationSound *sound;
   struct _GNotification *rn;
+  struct _GNotificationSound *rns;
   GIcon *icon;
   const gchar * const *names;
   Button *b;
@@ -226,6 +247,32 @@ test_properties (void)
 
   g_assert_cmpstr (rn->default_action, ==, "app.action2");
   g_assert_cmpstr (g_variant_get_string (rn->default_action_target, NULL), ==, "target2");
+
+  GFile *file = g_file_new_for_uri ("file:///someuri");
+  sound = g_notification_sound_new_from_file (file);
+  g_notification_set_sound (n, sound);
+  rns = (struct _GNotificationSound *)n->sound;
+  g_assert_true (rns->sound_type == SOUND_TYPE_FILE);
+  g_assert_true (rns->data.file == file);
+  g_clear_object (&sound);
+  g_clear_object (&file);
+
+  GBytes *bytes = g_bytes_new_static (NULL, 0);
+  sound = g_notification_sound_new_from_bytes (bytes);
+  g_notification_set_sound (n, sound);
+  rns = (struct _GNotificationSound *)n->sound;
+  g_assert_true (rns->sound_type == SOUND_TYPE_BYTES);
+  g_assert_true (rns->data.bytes == bytes);
+  g_clear_object (&sound);
+  g_clear_pointer (&bytes, g_bytes_unref);
+
+  sound = g_notification_sound_new_default ();
+  g_notification_set_sound (n, sound);
+  rns = (struct _GNotificationSound *)n->sound;
+  g_assert_true (rns->sound_type == SOUND_TYPE_DEFAULT);
+  g_notification_set_sound (n, NULL);
+  g_assert_null (rn->sound);
+  g_clear_object (&sound);
 
   g_object_unref (n);
 }
