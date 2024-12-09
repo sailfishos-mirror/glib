@@ -28,6 +28,9 @@
 #include <stdio.h>
 #include <windows.h>
 
+#define COBJMACROS
+#include <wincodec.h>
+
 static char *argv0 = NULL;
 
 #include "../gwin32-private.c"
@@ -154,6 +157,25 @@ veh_debugger (int argc, char *argv[])
   g_fprintf (stderr, "Debugger invoked, attaching to %lu and signalling %" G_GUINTPTR_FORMAT, pid, event);
 }
 
+static void
+test_release_com (void)
+{
+  IWICImagingFactory *tmp =  NULL;
+
+  CoInitialize (NULL);
+  g_win32_release_com (&tmp);
+  g_assert (tmp == NULL);
+  g_assert (SUCCEEDED (CoCreateInstance (&CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, &IID_IWICImagingFactory, (void **)&tmp)));
+  g_assert (tmp != NULL);
+  g_assert (SUCCEEDED (IWICImagingFactory_AddRef (tmp) == 2));
+  g_win32_release_com (&tmp);
+  g_assert (tmp != NULL);
+  g_win32_release_com (&tmp);
+  g_assert (tmp == NULL);
+
+  CoUninitialize ();
+}
+
 int
 main (int   argc,
       char *argv[])
@@ -177,6 +199,7 @@ main (int   argc,
   g_test_add_func ("/win32/subprocess/debuggee", test_veh_debuggee);
   g_test_add_func ("/win32/subprocess/access_violation", test_access_violation);
   g_test_add_func ("/win32/subprocess/illegal_instruction", test_illegal_instruction);
+  g_test_add_func ("/win32/com/clear", test_release_com);
 
   return g_test_run();
 }
