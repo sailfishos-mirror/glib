@@ -19,6 +19,10 @@
 
 #include <glib.h>
 
+#ifdef G_OS_WIN32
+#include <wincodec.h>
+#endif
+
 #if !defined (G_CXX_STD_VERSION) || !defined (G_CXX_STD_CHECK_VERSION)
 #error G_CXX_STD_VERSION is not defined
 #endif
@@ -532,6 +536,27 @@ test_string_free (void)
   g_free (data);
 }
 
+#ifdef G_OS_WIN32
+static void
+test_release_com (void)
+{
+  IWICImagingFactory *tmp =  NULL;
+
+  CoInitialize (NULL);
+  g_win32_release_com (&tmp);
+  g_assert (tmp == NULL);
+  g_assert (SUCCEEDED (CoCreateInstance (CLSID_WICImagingFactory, NULL, CLSCTX_INPROC_SERVER, IID_IWICImagingFactory, (void **)&tmp)));
+  g_assert (tmp != NULL);
+  g_assert (SUCCEEDED (tmp->AddRef () == 2));
+  g_win32_release_com (&tmp);
+  g_assert (tmp != NULL);
+  g_win32_release_com (&tmp);
+  g_assert (tmp == NULL);
+
+  CoUninitialize ();
+}
+#endif
+
 int
 main (int argc, char *argv[])
 {
@@ -566,5 +591,8 @@ main (int argc, char *argv[])
   g_test_add_func ("/C++/string-append", test_string_append);
   g_test_add_func ("/C++/string-free", test_string_free);
 
+#ifdef G_OS_WIN32
+  g_test_add_func ("/C++/test_release_com", test_release_com);
+#endif
   return g_test_run ();
 }
