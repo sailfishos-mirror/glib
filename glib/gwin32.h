@@ -43,6 +43,10 @@ G_BEGIN_DECLS
 
 #ifdef G_OS_WIN32
 
+#ifdef __cplusplus
+#include <unknwn.h>
+#endif
+
 /*
  * To get prototypes for the following POSIXish functions, you have to
  * include the indicated non-POSIX headers. The functions are defined
