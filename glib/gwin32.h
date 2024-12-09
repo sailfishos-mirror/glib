@@ -150,7 +150,7 @@ gboolean g_win32_check_windows_version (const gint major,
  *
  * If @com_obj references a `NULL` COM  object, this function is a no-op.
  *
- * This is equivalent to [func@GLib.clear_object] for dealing with
+ * This is equivalent to [func@GObject.clear_object] for dealing with
  * Windows COM objects.
  *
  * Note that until C23 support is utilized for Visual Studio, harmless C4133 warnings
