@@ -603,6 +603,46 @@ GIO_AVAILABLE_IN_ALL
 void             g_dbus_connection_signal_unsubscribe         (GDBusConnection     *connection,
                                                                guint                subscription_id);
 
+/**
+ * g_clear_dbus_signal_subscription: (skip)
+ * @subscription_id_pointer: (not optional) (inout): A pointer to either a
+ *  subscription id obtained from g_dbus_connection_signal_subscribe(),
+ *  or zero.
+ * @connection: The connection from which the subscription ID was obtained.
+ *  This pointer may be %NULL or invalid, if the subscription ID is zero.
+ *
+ * If @subscription_id_pointer points to a nonzero subscription ID,
+ * unsubscribe from that D-Bus signal subscription as if via
+ * g_dbus_connection_signal_unsubscribe().
+ * Also set the value pointed to by @subscription_id_pointer to zero,
+ * which is not a valid subscription ID.
+ *
+ * This convenience function for C code helps to ensure that each signal
+ * subscription is unsubscribed exactly once, similar to g_clear_object()
+ * and g_clear_signal_handler().
+ *
+ * Since: 2.84
+ */
+GLIB_AVAILABLE_STATIC_INLINE_IN_2_84
+static inline void g_clear_dbus_signal_subscription           (guint               *subscription_id_pointer,
+                                                               GDBusConnection     *connection);
+
+GLIB_AVAILABLE_STATIC_INLINE_IN_2_84
+static inline void
+g_clear_dbus_signal_subscription (guint           *subscription_id_pointer,
+                                  GDBusConnection *connection)
+{
+  guint subscription_id;
+
+  /* Suppress "Not available before" warning */
+  G_GNUC_BEGIN_IGNORE_DEPRECATIONS
+  subscription_id = g_steal_handle_id (subscription_id_pointer);
+  G_GNUC_END_IGNORE_DEPRECATIONS
+
+  if (subscription_id > 0)
+    g_dbus_connection_signal_unsubscribe (connection, subscription_id);
+}
+
 /* ---------------------------------------------------------------------------------------------------- */
 
 /**
